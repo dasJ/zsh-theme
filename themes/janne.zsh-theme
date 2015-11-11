@@ -1,7 +1,7 @@
 # vim: filetype=sh
 
-pmodload 'helper'
-pmodload 'git'
+autoload -Uz 'helper'
+autoload -Uz 'git'
 
 # Thanks to Karen for this!
 function milis_to_human() {
@@ -38,7 +38,7 @@ function milis_to_human() {
 	TIMER_ELAPSED="${1}ms"
 }
 
-function precmd {
+function prompt_janne_precmd() {
 	local TERMWIDTH
 
 	if $TIMER_EXECUTED; then
@@ -68,7 +68,7 @@ function precmd {
 	fi
 }
 
-function preexec {
+function prompt_janne_preexec() {
 	if [[ "$TERM" == "screen" ]]; then
 		local CMD=${1[(wr)^(*=*|sudo|-*)]}
 		echo -n "\ek$CMD\e\\"
