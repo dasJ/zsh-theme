@@ -1,7 +1,6 @@
 # vim: filetype=sh
 
 autoload -Uz 'helper'
-autoload -Uz 'git'
 
 # Thanks to Karen for this!
 function milis_to_human() {
