@@ -2,82 +2,56 @@
 
 autoload -Uz 'helper'
 
-# Thanks to Karen for this!
-function milis_to_human() {
-	if [ $1 -gt 30000 ]; then # 30 seconds
-		local elapsed=`expr $1 / 1000`
-		TIMER_ELAPSED="${elapsed}s"
-		return
+prompt_janne_gitstatus() {
+	local gitstatus branch
+	# Check if dirty
+	gitstatus=`git status --porcelain --ignore-submodules 2>/dev/null`
+	test $? -eq 0 || return 0 # Not in a git repo
+	branch="`git rev-parse --abbrev-ref HEAD 2>/dev/null`"
+	test $? -eq 0 || branch="[none]" # No branch created yet
+	if [ "$branch" = "HEAD" ]; then
+		# Detached head
+		branch="`git rev-parse --short HEAD`"
 	fi
-	if [ $1 -gt 120000 ]; then # 2 minutes
-		local elapsed=`expr $1 / 60000`
-		TIMER_ELAPSED="${elapsed}min"
-		return
-	fi
-	if [ $1 -gt 7200000 ]; then # 2 hours
-		local elapsed=`expr $1 / 3600000`
-		TIMER_ELAPSED="${elapsed}h"
-		return
-	fi
-	if [ $1 -gt 7200000 ]; then # 2 days
-		local elapsed=`expr $1 / 3600000`
-		TIMER_ELAPSED="${elapsed}days"
-		return
-	fi
-	if [ $1 -gt 1209600000 ]; then # 2 weeks
-		local elapsed=`expr $1 / 604800000`
-		TIMER_ELASPED="${elapsed}weeks"
-		return
-	fi
-	if [ $1 -gt 5259487660 ]; then # 2 months
-		local elapsed=`expr $1 / 2629743830`
-		TIMER_ELAPSED="${elapsed}months"
-		return
-	fi
-	TIMER_ELAPSED="${1}ms"
+	echo -n "%{$fg[yellow]%}$branch%{$terminfo[sgr0]%}"
+	test -n "$gitstatus" && echo -n "%{$fg[cyan]%}\u2718 %{$terminfo[sgr0]%}" # Dirty stuff
 }
 
-function prompt_janne_precmd() {
-	local TERMWIDTH
+prompt_janne_completeWithDots() {
+	echo -n "$fg[red]...$terminfo[sgr0]"
+	zle expand-or-complete
+	zle redisplay
+}
 
-	if $TIMER_EXECUTED; then
-		TIMER_EXECUTED=false
-		milis_to_human $(($(($(date +%s%N)/1000000))-TIMER_START))
-	fi
+prompt_janne_precmd() {
+	local TERMWIDTH
 
 	(( TERMWIDTH = ${COLUMNS} - 1 ))
 
-	if (( $+functions[git-info] )); then
-		git-info
-	fi
-
 	# Truncate the path if it's too long.
-
-	PR_FILLBAR=""
-	PR_PWDLEN=""
+	PROMPT_JANNE_FILLBAR=""
+	PROMPT_JANNE_PWDLEN=""
 
 	local promptsize=${#${(%):---(%n@%m:%l)---()--}}
 	local pwdsize=${#${(%):-%~}}
 
 	# Calculate bar width
 	if [[ "$promptsize + $pwdsize" -gt $TERMWIDTH ]]; then
-		((PR_PWDLEN=$TERMWIDTH - $promptsize))
+		((PROMPT_JANNE_PWDLEN=$TERMWIDTH - $promptsize))
 	else
-		PR_FILLBAR="\${(l.(($TERMWIDTH - ($promptsize + $pwdsize)))..${PR_HBAR}.)}"
+		PROMPT_JANNE_FILLBAR="\${(l.(($TERMWIDTH - ($promptsize + $pwdsize)))..${PROMPT_JANNE_HBAR}.)}"
 	fi
+	test $PROMPT_JANNE_GIT -eq 0 && PROMPT_JANNE_GITPROMPT="`prompt_janne_gitstatus`"
 }
 
-function prompt_janne_preexec() {
-	if [[ "$TERM" == "screen" ]]; then
+prompt_janne_preexec() {
+	if [[ "$TERM" == screen* ]]; then
 		local CMD=${1[(wr)^(*=*|sudo|-*)]}
 		echo -n "\ek$CMD\e\\"
 	fi
-
-	TIMER_START=$(($(date +%s%N)/1000000))
-	TIMER_EXECUTED=true
 }
 
-function setprompt {
+prompt_janne_setprompt() {
 	setopt LOCAL_OPTIONS
 	setopt prompt_subst
 	prompt_opts=(cr percent subst)
@@ -90,124 +64,98 @@ function setprompt {
 	add-zsh-hook precmd prompt_janne_precmd
 	add-zsh-hook preexec prompt_janne_preexec
 
-	# See if we can use colors.
-	if [[ "$terminfo[colors]" -ge 8 ]]; then
-		colors
-	fi
-	for color in RED GREEN YELLOW BLUE MAGENTA CYAN WHITE GREY; do
-		eval PR_$color='%{$terminfo[bold]$fg[${(L)color}]%}'
-		eval PR_LIGHT_$color='%{$fg[${(L)color}]%}'
-		(( count = $count + 1 ))
-	done
-	PR_NO_COLOUR="%{$terminfo[sgr0]%}"
-
 	# Completion waiting dots
-	zstyle ':prezto:module:editor:info:completing' format '%B%F{red}...%f%b'
-
-	# Modify Git prompt
-	zstyle ':prezto:module:git:info:branch' format '${PR_WHITE}on %b'
-	zstyle ':prezto:module:git:info:commit' format '${PR_GREY}at %.5c'
-	zstyle ':prezto:module:git:info:keys' format \
-		'prompt' ' $(coalesce "%b" "%c")'
+	zle -N prompt_janne_completeWithDots
+	bindkey "^I" prompt_janne_completeWithDots
 
 	# See if we can use extended characters to look nicer.
 	if [[ $(locale charmap) == "UTF-8" ]]; then
-		PR_SET_CHARSET=""
-		PR_SHIFT_IN=""
-		PR_SHIFT_OUT=""
-		PR_HBAR="─"
-		PR_ULCORNER="┌"
-		PR_LLCORNER="└"
-		PR_LRCORNER="┘"
-		PR_URCORNER="┐"
+		PROMPT_JANNE_SET_CHARSET=""
+		PROMPT_JANNE_HBAR="─"
+		PROMPT_JANNE_ULCORNER="┌"
+		PROMPT_JANNE_URCORNER="┐"
 	else
 		typeset -A altchar
 		set -A altchar ${(s..)terminfo[acsc]}
 		# Some stuff to help us draw nice lines
-		PR_SET_CHARSET="%{$terminfo[enacs]%}"
-		PR_SHIFT_IN="%{$terminfo[smacs]%}"
-		PR_SHIFT_OUT="%{$terminfo[rmacs]%}"
-		PR_HBAR='$PR_SHIFT_IN${altchar[q]:--}$PR_SHIFT_OUT'
-		PR_ULCORNER='$PR_SHIFT_IN${altchar[l]:--}$PR_SHIFT_OUT'
-		PR_LLCORNER='$PR_SHIFT_IN${altchar[m]:--}$PR_SHIFT_OUT'
-		PR_LRCORNER='$PR_SHIFT_IN${altchar[j]:--}$PR_SHIFT_OUT'
-		PR_URCORNER='$PR_SHIFT_IN${altchar[k]:--}$PR_SHIFT_OUT'
+		PROMPT_JANNE_SET_CHARSET="$terminfo[enacs]"
+		PROMPT_JANNE_SHIFT_IN="%{$terminfo[smacs]%}"
+		PROMPT_JANNE_SHIFT_OUT="%{$terminfo[rmacs]%}"
+		PROMPT_JANNE_HBAR='$PROMPT_JANNE_SHIFT_IN${altchar[q]:--}$PROMPT_JANNE_SHIFT_OUT'
+		PROMPT_JANNE_ULCORNER='$PROMPT_JANNE_SHIFT_IN${altchar[l]:--}$PROMPT_JANNE_SHIFT_OUT'
+		PROMPT_JANNE_URCORNER='$PROMPT_JANNE_SHIFT_IN${altchar[k]:--}$PROMPT_JANNE_SHIFT_OUT'
 	 fi
 
 	# Decide if we need to set titlebar text.
 	case $TERM in
 		xterm*)
-			PR_TITLEBAR=$'%{\e]0;%n@%m:%~ | ${COLUMNS}x${LINES} | %y\a%}'
+			PROMPT_JANNE_TITLEBAR=$'\e]0;%n@%m:%~ | %y\a'
 			;;
-		screen)
-			PR_TITLEBAR=$'%{\e_screen \005 (\005t) | %n@%m:%~ | ${COLUMNS}x${LINES} | %y\e\\%}'
+		screen*)
+			PROMPT_JANNE_TITLEBAR=$'\e_screen \005 (\005t) | %n@%m:%~ | %y\e\\'
 			;;
 		*)
-			PR_TITLEBAR=''
+			PROMPT_JANNE_TITLEBAR=''
 			;;
 	esac
 
 	# Decide whether to set a screen title
-	if [[ "$TERM" == "screen" ]]; then
-		PR_STITLE=$'%{\ekzsh\e\\%}'
+	if [[ "$TERM" == screen* ]]; then
+		PROMPT_JANNE_STITLE=$'\ekzsh\e\\'
 	else
-		PR_STITLE=''
+		PROMPT_JANNE_STITLE=''
 	fi
 
 	# Make it red for root
 	if [[ $EUID -ne 0 ]]; then
-		PROMPT_COLOR=$PR_YELLOW
-		PROMPT_SECOND_COLOR=$PR_GREY
+		PROMPT_COLOR="%{$fg[yellow]%}"
 	else
-		PROMPT_COLOR=$PR_RED
-		PROMPT_SECOND_COLOR=$PR_RED
+		PROMPT_COLOR="%{$fg[red]%}"
 	fi
 
-	# Change $/# color for root
+	# Change $/# color for SSH
 	if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ]; then
-		PR_SSH_COLOR=$PR_RED
+		PROMPT_JANNE_SSH_COLOR="%{$fg[magenta]%}"
 	else
-		PR_SSH_COLOR=$PR_YELLOW
+		PROMPT_JANNE_SSH_COLOR="%{$fg[yellow]%}"
+	fi
+
+	if hash git 2>/dev/null; then
+		PROMPT_JANNE_GIT=0
+	else
+		PROMPT_JANNE_GIT=1
 	fi
 
 	# Define prompts
-	PROMPT='$PR_SET_CHARSET$PR_STITLE${(e)PR_TITLEBAR}\
-$PROMPT_COLOR$PR_ULCORNER$PR_HBAR$PR_GREY(\
-$PR_GREEN%$PR_PWDLEN<...<%~%<<\
-$PR_GREY)$PROMPT_COLOR$PR_HBAR\
-$PR_HBAR${(e)PR_FILLBAR}$PR_HBAR$PR_GREY(\
-$PR_WHITE%(!.%SROOT%s.%n)$PR_GREY@$PR_GREEN%m:%l\
-$PR_GREY)$PROMPT_COLOR$PR_HBAR$PR_URCORNER\
+	return_code="%(?..%{$fg[red]%}%? %{$reset_color%})"
+	PS1='%{$PROMPT_JANNE_SET_CHARSET$PROMPT_JANNE_STITLE${(e)PROMPT_JANNE_TITLEBAR}$terminfo[bold]%}\
+$PROMPT_COLOR$PROMPT_JANNE_ULCORNER$PROMPT_JANNE_HBAR%{$fg[grey]%}(\
+%{$fg[green]%}%$PROMPT_JANNE_PWDLEN<...<%~%<<\
+%{$fg[grey]%})$PROMPT_COLOR$PROMPT_JANNE_HBAR\
+$PROMPT_JANNE_HBAR${(e)PROMPT_JANNE_FILLBAR}$PROMPT_JANNE_HBAR%{$fg[grey]%}(\
+%{$fg[white]%}%n%{$fg[grey]%}@%{$fg[green]%}%m:%l\
+%{$fg[grey]%})$PROMPT_COLOR$PROMPT_JANNE_HBAR$PROMPT_JANNE_URCORNER\
 
-${git_info:+${(e)git_info[prompt]}}\
-$PR_SSH_COLOR%(!.#.$)$PR_NO_COLOUR '
+$PROMPT_JANNE_GITPROMPT\
+$return_code$PROMPT_JANNE_SSH_COLOR%(!.#.$)%{$terminfo[sgr0]%} '
 
-	# display exitcode on the right when >0
-	return_code="%(?..%{$fg[red]%}%? ↵ %{$reset_color%})"
-	RPROMPT=' $return_code$PROMPT_COLOR$PROMPT_SECOND_COLOR\
-($PR_YELLOW$TIMER_ELAPSED$PROMPT_SECOND_COLOR)$PROMPT_COLOR$PR_HBAR$PR_LRCORNER$PR_NO_COLOUR'
+	PS2='$PROMPT_COLOR$PROMPT_JANNE_HBAR\
+$PROMPT_JANNE_HBAR%{$fg[grey]%}(\
+$fg[green]%_%{$fg[grey]%})$PROMPT_COLOR\
+$PROMPT_JANNE_HBAR$PROMPT_JANNE_HBAR%{$terminfo[sgr0]%} '
 
-	PS2='$PROMPT_COLOR$PR_HBAR\
-$PROMPT_SECOND_COLOR$PR_HBAR(\
-$PR_LIGHT_GREEN%_$PROMPT_SECOND_COLOR)$PR_HBAR\
-$PROMPT_COLOR$PR_HBAR$PR_NO_COLOUR '
+	PS4="%{$fg[green]%}+%{$terminfo[sgr0]%} "
 
 	SPROMPT='zsh: correct %F{red}%R%f to %F{green}%r%f [nyae]? '
+
+	TIMEFMT="%J $fg[cyan]%U $terminfo[sgr0]user $fg[cyan]%S $terminfo[sgr0]system \
+$fg[cyan]%P $terminfo[sgr0]cpu $fg[cyan]%*E $terminfo[sgr0]total"
 
 	# Fix for midnight commander
 	if ps $PPID | grep mc; then
 		unset RPROMPT
 		PROMPT='mc: '
 	fi
-
-	milis_to_human 0
-	TIMER_EXECUTED=false
 }
 
-function prompt_janne_preview {
-	local +h PROMPT='%# '
-	local +h RPROMPT=''
-	prompt_preview_theme 'janne' "$@"
-}
-
-setprompt
+prompt_janne_setprompt
