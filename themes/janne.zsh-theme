@@ -51,6 +51,13 @@ prompt_janne_preexec() {
 	fi
 }
 
+function zle-line-init zle-keymap-select {
+	test $KEYMAP = vicmd && PROMPT_JANNE_COLOR="%{$fg[cyan]%}" \
+		|| PROMPT_JANNE_COLOR="$PROMPT_JANNE_DEFAULT_COLOR"
+	zle reset-prompt
+}
+
+
 prompt_janne_setprompt() {
 	setopt LOCAL_OPTIONS
 	setopt prompt_subst
@@ -67,6 +74,10 @@ prompt_janne_setprompt() {
 	# Completion waiting dots
 	zle -N prompt_janne_completeWithDots
 	bindkey "^I" prompt_janne_completeWithDots
+
+	# vi mode highlight
+	zle -N zle-line-init
+	zle -N zle-keymap-select
 
 	# See if we can use extended characters to look nicer.
 	if [[ $(locale charmap) == "UTF-8" ]]; then
@@ -108,10 +119,11 @@ prompt_janne_setprompt() {
 
 	# Make it red for root
 	if [[ $EUID -ne 0 ]]; then
-		PROMPT_COLOR="%{$fg[yellow]%}"
+		PROMPT_JANNE_DEFAULT_COLOR="%{$fg[yellow]%}"
 	else
-		PROMPT_COLOR="%{$fg[red]%}"
+		PROMPT_JANNE_DEFAULT_COLOR="%{$fg[red]%}"
 	fi
+	PROMPT_JANNE_COLOR="$PROMPT_JANNE_DEFAULT_COLOR"
 
 	# Change $/# color for SSH
 	if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ]; then
@@ -129,19 +141,19 @@ prompt_janne_setprompt() {
 	# Define prompts
 	return_code="%(?..%{$fg[red]%}%? %{$reset_color%})"
 	PS1='%{$PROMPT_JANNE_SET_CHARSET$PROMPT_JANNE_STITLE${(e)PROMPT_JANNE_TITLEBAR}$terminfo[bold]%}\
-$PROMPT_COLOR$PROMPT_JANNE_ULCORNER$PROMPT_JANNE_HBAR%{$fg[grey]%}(\
+$PROMPT_JANNE_COLOR$PROMPT_JANNE_ULCORNER$PROMPT_JANNE_HBAR%{$fg[grey]%}(\
 %{$fg[green]%}%$PROMPT_JANNE_PWDLEN<...<%~%<<\
-%{$fg[grey]%})$PROMPT_COLOR$PROMPT_JANNE_HBAR\
+%{$fg[grey]%})$PROMPT_JANNE_COLOR$PROMPT_JANNE_HBAR\
 $PROMPT_JANNE_HBAR${(e)PROMPT_JANNE_FILLBAR}$PROMPT_JANNE_HBAR%{$fg[grey]%}(\
 %{$fg[white]%}%n%{$fg[grey]%}@%{$fg[green]%}%m:%l\
-%{$fg[grey]%})$PROMPT_COLOR$PROMPT_JANNE_HBAR$PROMPT_JANNE_URCORNER\
+%{$fg[grey]%})$PROMPT_JANNE_COLOR$PROMPT_JANNE_HBAR$PROMPT_JANNE_URCORNER\
 
 $PROMPT_JANNE_GITPROMPT\
 $return_code$PROMPT_JANNE_SSH_COLOR%(!.#.$)%{$terminfo[sgr0]%} '
 
-	PS2='$PROMPT_COLOR$PROMPT_JANNE_HBAR\
+	PS2='$PROMPT_JANNE_COLOR$PROMPT_JANNE_HBAR\
 $PROMPT_JANNE_HBAR%{$fg[grey]%}(\
-$fg[green]%_%{$fg[grey]%})$PROMPT_COLOR\
+$fg[green]%_%{$fg[grey]%})$PROMPT_JANNE_COLOR\
 $PROMPT_JANNE_HBAR$PROMPT_JANNE_HBAR%{$terminfo[sgr0]%} '
 
 	PS4="%{$fg[green]%}+%{$terminfo[sgr0]%} "
