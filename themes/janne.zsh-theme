@@ -165,8 +165,7 @@ $fg[cyan]%P $terminfo[sgr0]cpu $fg[cyan]%*E $terminfo[sgr0]total"
 
 	# Fix for midnight commander
 	if ps $PPID | grep mc; then
-		unset RPROMPT
-		PROMPT='mc: '
+		PROMPT='zsh: '
 	fi
 }
 
