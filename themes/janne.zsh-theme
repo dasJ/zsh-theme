@@ -127,7 +127,7 @@ prompt_janne_setprompt() {
 
 	# Change $/# color for SSH
 	if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ]; then
-		PROMPT_JANNE_SSH_COLOR="%{$fg[magenta]%}"
+		test ! -f "$HOME/.dotfiles/thisislocal" && PROMPT_JANNE_SSH_COLOR="%{$fg[magenta]%}"
 	else
 		PROMPT_JANNE_SSH_COLOR="%{$fg[yellow]%}"
 	fi
