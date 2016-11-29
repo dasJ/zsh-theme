@@ -2,7 +2,9 @@
 
 autoload -Uz 'helper'
 
+# Render a statusline for git
 prompt_janne_gitstatus() {
+	# TODO Rewrite
 	local gitstatus branch
 	# Check if dirty
 	gitstatus=`git status --porcelain --ignore-submodules 2>/dev/null`
@@ -17,12 +19,14 @@ prompt_janne_gitstatus() {
 	test -n "$gitstatus" && echo -n "%{$fg[cyan]%}\u2718 %{$terminfo[sgr0]%}" # Dirty stuff
 }
 
+# Show waiting dots while completing
 prompt_janne_completeWithDots() {
-	echo -n "$fg[red]...$terminfo[sgr0]"
+	echo -n "$fg_bold[red]...$fg_bold[reset]"
 	zle expand-or-complete
 	zle redisplay
 }
 
+# Gets executed before showing the prompt
 prompt_janne_precmd() {
 	local TERMWIDTH
 
@@ -44,32 +48,20 @@ prompt_janne_precmd() {
 	test $PROMPT_JANNE_GIT -eq 0 && PROMPT_JANNE_GITPROMPT="`prompt_janne_gitstatus`"
 }
 
-prompt_janne_preexec() {
-	if [[ "$TERM" == screen* ]]; then
-		local CMD=${1[(wr)^(*=*|sudo|-*)]}
-		echo -n "\ek$CMD\e\\"
-	fi
-}
-
+# Gets executed when switching vi modes
 function zle-line-init zle-keymap-select {
 	test $KEYMAP = vicmd && PROMPT_JANNE_COLOR="%{$fg[cyan]%}" \
 		|| PROMPT_JANNE_COLOR="$PROMPT_JANNE_DEFAULT_COLOR"
 	zle reset-prompt
 }
 
-
+# Apply the prompt
 prompt_janne_setprompt() {
-	setopt LOCAL_OPTIONS
-	setopt prompt_subst
-	prompt_opts=(cr percent subst)
-
 	# Load required functons
 	autoload -U add-zsh-hook
-	autoload colors zsh/terminfo
 
-	# Add hooks
+	# Add hook
 	add-zsh-hook precmd prompt_janne_precmd
-	add-zsh-hook preexec prompt_janne_preexec
 
 	# Completion waiting dots
 	zle -N prompt_janne_completeWithDots
@@ -97,26 +89,6 @@ prompt_janne_setprompt() {
 		PROMPT_JANNE_URCORNER='$PROMPT_JANNE_SHIFT_IN${altchar[k]:--}$PROMPT_JANNE_SHIFT_OUT'
 	 fi
 
-	# Decide if we need to set titlebar text.
-	case $TERM in
-		xterm*)
-			PROMPT_JANNE_TITLEBAR=$'\e]0;%n@%m:%~ | %y\a'
-			;;
-		screen*)
-			PROMPT_JANNE_TITLEBAR=$'\e_screen \005 (\005t) | %n@%m:%~ | %y\e\\'
-			;;
-		*)
-			PROMPT_JANNE_TITLEBAR=''
-			;;
-	esac
-
-	# Decide whether to set a screen title
-	if [[ "$TERM" == screen* ]]; then
-		PROMPT_JANNE_STITLE=$'\ekzsh\e\\'
-	else
-		PROMPT_JANNE_STITLE=''
-	fi
-
 	# Make it red for root
 	if [[ $EUID -ne 0 ]]; then
 		PROMPT_JANNE_DEFAULT_COLOR="%{$fg[yellow]%}"
@@ -140,7 +112,7 @@ prompt_janne_setprompt() {
 
 	# Define prompts
 	return_code="%(?..%{$fg[red]%}%? %{$reset_color%})"
-	PS1='%{$PROMPT_JANNE_SET_CHARSET$PROMPT_JANNE_STITLE${(e)PROMPT_JANNE_TITLEBAR}$terminfo[bold]%}\
+	PS1='%{$PROMPT_JANNE_SET_CHARSET$terminfo[bold]%}\
 $PROMPT_JANNE_COLOR$PROMPT_JANNE_ULCORNER$PROMPT_JANNE_HBAR%{$fg[grey]%}(\
 %{$fg[green]%}%$PROMPT_JANNE_PWDLEN<...<%~%<<\
 %{$fg[grey]%})$PROMPT_JANNE_COLOR$PROMPT_JANNE_HBAR\
