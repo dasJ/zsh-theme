@@ -4,7 +4,7 @@ autoload -Uz 'helper'
 
 # Render a statusline for git
 prompt_janne_gitstatus() {
-	[ -z "${PROMPT_JANNE_GIT}" ] || return
+	[ ! -z "${PROMPT_JANNE_GIT}" ] || return
 	local branch
 	# Check if this is a repo
 	git rev-parse --git-dir &>/dev/null || return
