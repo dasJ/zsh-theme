@@ -4,19 +4,19 @@ autoload -Uz 'helper'
 
 # Render a statusline for git
 prompt_janne_gitstatus() {
-	# TODO Rewrite
-	local gitstatus branch
-	# Check if dirty
-	gitstatus=`git status --porcelain --ignore-submodules 2>/dev/null`
-	test $? -eq 0 || return 0 # Not in a git repo
-	branch="`git rev-parse --abbrev-ref HEAD 2>/dev/null`"
-	test $? -eq 0 || branch="[none]" # No branch created yet
-	if [ "$branch" = "HEAD" ]; then
-		# Detached head
+	local branch
+	# Check if this is a repo
+	git rev-parse --git-dir &>/dev/null || return
+	# Get branch
+	branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
+	# No branch created yet?
+	test $? -eq 0 || branch="[no branch]"
+	# Detached head?
+	if [ "${branch}" = "HEAD" ]; then
 		branch="`git rev-parse --short HEAD`"
 	fi
-	echo -n "%{$fg[yellow]%}$branch%{$terminfo[sgr0]%}"
-	test -n "$gitstatus" && echo -n "%{$fg[cyan]%}\u2718 %{$terminfo[sgr0]%}" # Dirty stuff
+	# Output
+	echo -n "%{$fg[yellow]%}$branch%{$terminfo[sgr0]%} "
 }
 
 # Show waiting dots while completing
@@ -99,7 +99,11 @@ prompt_janne_setprompt() {
 
 	# Change $/# color for SSH
 	if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ]; then
-		test ! -f "$HOME/.dotfiles/local/thisislocal" && PROMPT_JANNE_SSH_COLOR="%{$fg[magenta]%}"
+		if [ -f "$HOME/.dotfiles/local/thisislocal" ]; then
+			PROMPT_JANNE_SSH_COLOR="%{$fg[yellow]%}"
+		else
+			PROMPT_JANNE_SSH_COLOR="%{$fg[magenta]%}"
+		fi
 	else
 		PROMPT_JANNE_SSH_COLOR="%{$fg[yellow]%}"
 	fi
