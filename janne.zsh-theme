@@ -29,6 +29,7 @@ prompt_janne_completeWithDots() {
 
 # Gets executed before showing the prompt
 prompt_janne_precmd() {
+	unset REPORTTIME
 	local TERMWIDTH
 
 	(( TERMWIDTH = ${COLUMNS} - 1 ))
@@ -49,6 +50,10 @@ prompt_janne_precmd() {
 	PROMPT_JANNE_GITPROMPT="$(prompt_janne_gitstatus)"
 }
 
+prompt_janne_preexec() {
+	REPORTTIME=0
+}
+
 # Gets executed when switching vi modes
 function zle-line-init zle-keymap-select {
 	test $KEYMAP = vicmd && PROMPT_JANNE_COLOR="%{$fg[cyan]%}" \
@@ -63,6 +68,7 @@ prompt_janne_setprompt() {
 
 	# Add hook
 	add-zsh-hook precmd prompt_janne_precmd
+	add-zsh-hook preexec prompt_janne_preexec
 
 	# Completion waiting dots
 	zle -N prompt_janne_completeWithDots
