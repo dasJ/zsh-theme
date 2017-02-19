@@ -110,7 +110,6 @@ prompt_janne_setprompt() {
 	fi
 
 	# Define prompts
-	return_code="%(?..%{$fg[red]%}%? %{$reset_color%})"
 	PS1='%{$PROMPT_JANNE_SET_CHARSET$terminfo[bold]%}\
 $PROMPT_JANNE_COLOR$PROMPT_JANNE_ULCORNER$PROMPT_JANNE_HBAR%{$fg[grey]%}(\
 %{$fg[green]%}%$PROMPT_JANNE_PWDLEN<...<%~%<<\
@@ -120,7 +119,7 @@ $PROMPT_JANNE_HBAR${(e)PROMPT_JANNE_FILLBAR}$PROMPT_JANNE_HBAR%{$fg[grey]%}(\
 %{$fg[grey]%})$PROMPT_JANNE_COLOR$PROMPT_JANNE_HBAR$PROMPT_JANNE_URCORNER\
 
 $PROMPT_JANNE_GITPROMPT\
-$return_code$PROMPT_JANNE_SSH_COLOR%(!.#.$)%{$terminfo[sgr0]%} '
+$PROMPT_JANNE_SSH_COLOR%(!.#.$)%{$terminfo[sgr0]%} '
 
 	# ZLE lines (after line 1)
 	PS2='$PROMPT_JANNE_COLOR$PROMPT_JANNE_HBAR\
