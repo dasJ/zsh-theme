@@ -55,10 +55,22 @@ prompt_janne_preexec() {
 }
 
 # Gets executed when switching vi modes
-function zle-line-init zle-keymap-select {
-	test $KEYMAP = vicmd && PROMPT_JANNE_COLOR="%{$fg[cyan]%}" \
-		|| PROMPT_JANNE_COLOR="%{$fg[yellow]%}"
+zle-keymap-select() {
+	if [ "${KEYMAP}" = 'vicmd' ]; then
+		PROMPT_JANNE_COLOR="%{$fg[cyan]%}"
+	else
+		PROMPT_JANNE_COLOR="%{$fg[yellow]%}"
+	fi
 	zle reset-prompt
+}
+
+zle-line-init() {
+	echoti smkx
+	zle-keymap-select
+}
+
+zle-line-finish() {
+	echoti rmkx
 }
 
 # Apply the prompt
@@ -77,6 +89,7 @@ prompt_janne_setprompt() {
 	# vi mode highlight
 	zle -N zle-line-init
 	zle -N zle-keymap-select
+	zle -N zle-line-finish
 
 	# See if we can use extended characters to look nicer.
 	if [ "$(locale charmap)" = 'UTF-8' ]; then
