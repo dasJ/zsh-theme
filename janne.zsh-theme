@@ -40,12 +40,13 @@ prompt_janne_precmd() {
 
 	local promptsize=${#${(%):---(%n@%m:%l)---()--}}
 	local pwdsize=${#${(%):-%~}}
+	local nixsize="$([ -z "${PROMPT_JANNE_NIX}" ] && echo 0 || echo 5)"
 
 	# Calculate bar width
-	if [[ "$promptsize + $pwdsize" -gt $TERMWIDTH ]]; then
+	if [[ "$promptsize + $pwdsize + $nixsize" -gt $TERMWIDTH ]]; then
 		((PROMPT_JANNE_PWDLEN=$TERMWIDTH - $promptsize))
 	else
-		PROMPT_JANNE_FILLBAR="\${(l.(($TERMWIDTH - ($promptsize + $pwdsize)))..${PROMPT_JANNE_HBAR}.)}"
+		PROMPT_JANNE_FILLBAR="\${(l.(($TERMWIDTH - ($promptsize + $pwdsize + $nixsize)))..${PROMPT_JANNE_HBAR}.)}"
 	fi
 	PROMPT_JANNE_GITPROMPT="$(prompt_janne_gitstatus)"
 }
@@ -110,6 +111,7 @@ prompt_janne_setprompt() {
 	fi
 
 	PROMPT_JANNE_COLOR="%{$fg[yellow]%}"
+	PROMPT_JANNE_NIX="$([ "${IN_NIX_SHELL}" ] && echo "(%{$fg[magenta]%}NIX%{$fg[grey]%})")"
 
 	# Change $/# color for SSH
 	if [ \( -n "${SSH_CLIENT}" -o -n "${SSH_TTY}" \) -a ! -f "${HOME}/.dotfiles/local/thisislocal" ]; then
@@ -126,7 +128,7 @@ prompt_janne_setprompt() {
 	PS1='%{$PROMPT_JANNE_SET_CHARSET$terminfo[bold]%}\
 $PROMPT_JANNE_COLOR$PROMPT_JANNE_ULCORNER$PROMPT_JANNE_HBAR%{$fg[grey]%}(\
 %{$fg[green]%}%$PROMPT_JANNE_PWDLEN<...<%~%<<\
-%{$fg[grey]%})$PROMPT_JANNE_COLOR$PROMPT_JANNE_HBAR\
+%{$fg[grey]%})$PROMPT_JANNE_NIX$PROMPT_JANNE_COLOR$PROMPT_JANNE_HBAR\
 $PROMPT_JANNE_HBAR${(e)PROMPT_JANNE_FILLBAR}$PROMPT_JANNE_HBAR%{$fg[grey]%}(\
 %{$fg[white]%}%n%{$fg[grey]%}@%{$fg[green]%}%m:%l\
 %{$fg[grey]%})$PROMPT_JANNE_COLOR$PROMPT_JANNE_HBAR$PROMPT_JANNE_URCORNER\
