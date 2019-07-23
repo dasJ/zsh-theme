@@ -30,9 +30,6 @@ prompt_janne_completeWithDots() {
 # Gets executed before showing the prompt
 prompt_janne_precmd() {
 	unset REPORTTIME
-	local TERMWIDTH
-
-	(( TERMWIDTH = ${COLUMNS} - 1 ))
 
 	# Truncate the path if it's too long.
 	PROMPT_JANNE_FILLBAR=""
@@ -43,10 +40,10 @@ prompt_janne_precmd() {
 	local nixsize="$([ -z "${PROMPT_JANNE_NIX}" ] && echo 0 || echo 5)"
 
 	# Calculate bar width
-	if [[ "$promptsize + $pwdsize + $nixsize" -gt $TERMWIDTH ]]; then
-		((PROMPT_JANNE_PWDLEN=$TERMWIDTH - $promptsize))
+	if [[ "$promptsize + $pwdsize + $nixsize" -gt $COLUMNS ]]; then
+		((PROMPT_JANNE_PWDLEN=$COLUMNS - $promptsize))
 	else
-		PROMPT_JANNE_FILLBAR="\${(l.(($TERMWIDTH - ($promptsize + $pwdsize + $nixsize)))..${PROMPT_JANNE_HBAR}.)}"
+		PROMPT_JANNE_FILLBAR="\${(l.(($COLUMNS - ($promptsize + $pwdsize + $nixsize)))..${PROMPT_JANNE_HBAR}.)}"
 	fi
 	PROMPT_JANNE_GITPROMPT="$(prompt_janne_gitstatus)"
 }
